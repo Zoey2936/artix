@@ -1,5 +1,5 @@
 ```
 [custom]
-SigLevel = Optional TrustAll
+SigLevel = Optional
 Server = https://zoey2936.github.io/artix
 ```
