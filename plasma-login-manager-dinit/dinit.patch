@@ -67,7 +67,7 @@ index 31528d54..b3dc6f11 100644
      install(FILES pam/${PAM_OS_CONFIGURATION}/plasmalogin DESTINATION ${PAM_CONFIG_DIR})
  endif()
 diff --git a/services/CMakeLists.txt b/services/CMakeLists.txt
-index 5ed9ddda..4d1d9b2e 100644
+index 5ed9ddda..fef82399 100644
 --- a/services/CMakeLists.txt
 +++ b/services/CMakeLists.txt
 @@ -4,7 +4,9 @@ if(SYSTEMD_FOUND)
@@ -89,7 +89,7 @@ index 5ed9ddda..4d1d9b2e 100644
      configure_file(plasmalogin-tmpfiles.conf.in plasmalogin-tmpfiles.conf)
      install(
          FILES "${CMAKE_CURRENT_BINARY_DIR}/plasmalogin-tmpfiles.conf"
-@@ -22,3 +24,11 @@ if(DEFINED SYSTEMD_TMPFILES_DIR)
+@@ -22,3 +24,12 @@ if(DEFINED SYSTEMD_TMPFILES_DIR)
          RENAME plasmalogin.conf
      )
  endif()
@@ -97,6 +97,7 @@ index 5ed9ddda..4d1d9b2e 100644
 +if(USE_DINIT)
 +    ecm_install_configured_files(INPUT dinit/plasmalogin.in DESTINATION "${CMAKE_INSTALL_FULL_SYSCONFDIR}/dinit.d")
 +    install(FILES dinit/boot DESTINATION "${DATA_INSTALL_DIR}/dinit")
++    install(FILES dinit/plasmalogin.rules DESTINATION "${KDE_INSTALL_DATADIR}/polkit-1/rules.d")
 +
 +    configure_file(dinit/plasmalogin-tmpfiles.conf.in dinit/plasmalogin-tmpfiles.conf)
 +    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/dinit/plasmalogin-tmpfiles.conf" DESTINATION "lib/tmpfiles.d" RENAME plasmalogin-dinit.conf)
@@ -131,6 +132,23 @@ index 00000000..c626ab04
 +depends-on: login.target
 +depends-on: logind
 +depends-ms: userspawn
+diff --git a/services/dinit/plasmalogin.rules b/services/dinit/plasmalogin.rules
+new file mode 100644
+index 00000000..73e46334
+--- /dev/null
++++ b/services/dinit/plasmalogin.rules
+@@ -0,0 +1,11 @@
++/* -*- mode: js; js-indent-level: 4; indent-tabs-mode: nil -*- */
++
++polkit.addRule(function(action, subject) {
++    if (subject.user == "plasmalogin" &&
++        (action.id == "org.freedesktop.login1.power-off-multiple-sessions" ||
++         action.id == "org.freedesktop.login1.reboot-multiple-sessions" ||
++         action.id == "org.freedesktop.login1.hibernate-multiple-sessions" ||
++         action.id == "org.freedesktop.login1.suspend-multiple-sessions")) {
++        return polkit.Result.YES;
++    }
++});
 diff --git a/src/common/MessageHandler.h b/src/common/MessageHandler.h
 index 8d98c5f9..09396d5f 100644
 --- a/src/common/MessageHandler.h
@@ -223,12 +241,12 @@ index 774d0773..79b03b8e 100644
  
 diff --git a/src/frontend/startkde/dinit/plasma-login-kwin_wayland.in b/src/frontend/startkde/dinit/plasma-login-kwin_wayland.in
 new file mode 100644
-index 00000000..050b70fe
+index 00000000..c02c7d54
 --- /dev/null
 +++ b/src/frontend/startkde/dinit/plasma-login-kwin_wayland.in
 @@ -0,0 +1,3 @@
 +type = process
-+command = /usr/lib/dinit/dbus-wait-for -f 3 -n org.kde.KWin -- /usr/bin/env KWIN_USE_OVERLAYS=0 @CMAKE_INSTALL_FULL_BINDIR@/kwin_wayland --no-lockscreen --no-global-shortcuts --no-kactivities --inputmethod plasma-keyboard --locale1
++command = /usr/lib/dinit/dbus-wait-for -f 3 -n org.kde.KWin -- /usr/bin/env KWIN_USE_OVERLAYS=0 @CMAKE_INSTALL_FULL_BINDIR@/kwin_wayland --no-lockscreen --no-global-shortcuts --no-kactivities --inputmethod plasma-keyboard
 +ready-notification = pipefd:3
 diff --git a/src/frontend/startkde/dinit/plasma-login-wayland b/src/frontend/startkde/dinit/plasma-login-wayland
 new file mode 100644
