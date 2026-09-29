@@ -1,0 +1,34 @@
+name: build
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: artixlinux/artixlinux:base-devel
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: package
+        run: |
+          pacman -Suy --noconfirm
+          sed -i 's/(( EUID == 0 ))/false/' /usr/bin/makepkg
+          for dir in */; do PKGDEST="$PWD/repo" makepkg -D "$dir" --syncdeps --noconfirm; done
+          repo-add repo/custom.db.tar.gz repo/*.pkg.tar.zst
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: repo
+      - id: deployment
+        uses: actions/deploy-pages@v5
