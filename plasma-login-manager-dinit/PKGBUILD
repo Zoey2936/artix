@@ -1,0 +1,65 @@
+pkgname=plasma-login-manager-dinit
+pkgver=6.7.5
+pkgrel=1
+arch=(x86_64)
+pkgdesc='Plasma Login Manager, built against dinit + userspawn + elogind + syslog'
+url='https://kde.org/plasma-desktop/'
+license=(GPL-2.0-or-later)
+depends=(dinit
+         dinit-rc
+         init-logind
+         init-user-dbus
+         init-userspawn
+         glibc
+         kauth
+         kcmutils
+         kconfig
+         kcoreaddons
+         kdbusaddons
+         ki18n
+         kio
+         kirigami
+         kpackage
+         kservice
+         kwindowsystem
+         layer-shell-qt
+         libkscreen
+         libplasma
+         libstdc++
+         libxau
+         pam
+         plasma-workspace
+         qt6-5compat
+         qt6-base
+         qt6-declarative
+         sh)
+makedepends=(extra-cmake-modules
+             git
+             ninja
+             qt6-tools)
+groups=(plasma)
+provides=("${pkgname%-dinit}=$pkgver" init-displaymanager)
+conflicts=("${pkgname%-dinit}")
+source=("git+https://invent.kde.org/plasma/${pkgname%-dinit}.git#tag=v$pkgver"
+        dinit.patch)
+sha256sums=('SKIP'
+            'SKIP')
+
+prepare() {
+  git -C ${pkgname%-dinit} apply ../dinit.patch
+}
+
+build() {
+  cmake -B build -S ${pkgname%-dinit} -G Ninja \
+    -DCMAKE_BUILD_TYPE=None \
+    -DCMAKE_INSTALL_LIBEXECDIR=lib \
+    -DUSE_DINIT=ON \
+    -DPAM_OS_CONFIGURATION=arch \
+    -DPLASMALOGIN_INITIAL_VT=7 \
+    -DDBUS_CONFIG_FILENAME=plasma_org.freedesktop.DisplayManager.conf
+  cmake --build build
+}
+
+package() {
+  DESTDIR="$pkgdir" cmake --install build
+}
