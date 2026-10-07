@@ -11,7 +11,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: artixlinux/artixlinux:base-devel@sha256:466bac9c354cea7673619b93aad6f1e6ccbc8a5852a8d75121d4d1cd1b3b89c9
+    container: artixlinux/artixlinux:base-devel@sha256:e746e31ffe48f9526759711de0a3bc4cb7a8f61d7339dc9b11fe6bee4a722507
     permissions:
       contents: read
       pages: write
