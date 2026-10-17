@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 160989f6..d7c11004 100644
+index 98dcaabd..41ff6ed3 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -6,6 +6,7 @@ project(PLASMALOGIN VERSION ${PROJECT_VERSION})
@@ -9,7 +9,7 @@ index 160989f6..d7c11004 100644
 +option(USE_DINIT "Target dinit + userspawn + elogind + syslog instead of systemd" OFF)
  
  # Version settings
- set(PROJECT_DEP_VERSION "6.7.0")
+ set(PROJECT_DEP_VERSION "6.8.0")
 @@ -54,20 +55,26 @@ find_package(PkgConfig)
  # XAU
  pkg_check_modules(LIBXAU REQUIRED "xau" IMPORTED_TARGET)
@@ -184,10 +184,10 @@ index 8d98c5f9..09396d5f 100644
  
  static void standardLogger(QtMsgType type, const QString &msg)
 diff --git a/src/frontend/greeter/CMakeLists.txt b/src/frontend/greeter/CMakeLists.txt
-index be8ea32e..d6c2c2cb 100644
+index 9084f28f..41a84c39 100644
 --- a/src/frontend/greeter/CMakeLists.txt
 +++ b/src/frontend/greeter/CMakeLists.txt
-@@ -62,5 +62,9 @@ ecm_finalize_qml_module(plasma-login-greeter)
+@@ -63,5 +63,9 @@ ecm_finalize_qml_module(plasma-login-greeter)
  
  install(TARGETS plasma-login-greeter DESTINATION ${KDE_INSTALL_LIBEXECDIR})
  
@@ -223,7 +223,7 @@ index 27e28047..2764a804 100644
          setRelevant(false);
      }
 diff --git a/src/frontend/startkde/CMakeLists.txt b/src/frontend/startkde/CMakeLists.txt
-index 774d0773..79b03b8e 100644
+index f9f67ee9..66485874 100644
 --- a/src/frontend/startkde/CMakeLists.txt
 +++ b/src/frontend/startkde/CMakeLists.txt
 @@ -1,5 +1,10 @@
@@ -257,21 +257,20 @@ index 00000000..f50ee3da
 +type = internal
 +depends-on: plasma-login
 +waits-for: plasma-wallpaper
-diff --git a/src/frontend/startkde/startplasmalogin-wayland.cpp b/src/frontend/startkde/startplasmalogin-wayland.cpp
-index 5ddc6e98..a98233ce 100644
---- a/src/frontend/startkde/startplasmalogin-wayland.cpp
-+++ b/src/frontend/startkde/startplasmalogin-wayland.cpp
-@@ -14,6 +14,9 @@
+diff --git a/src/frontend/startkde/startplasma.cpp b/src/frontend/startkde/startplasma.cpp
+index 9fe0a6a0..3a4dfaec 100644
+--- a/src/frontend/startkde/startplasma.cpp
++++ b/src/frontend/startkde/startplasma.cpp
+@@ -20,6 +20,8 @@
  #include <QDebug>
- 
- #include <QCoreApplication>
-+#include <QEventLoop>
+ #include <QDir>
+ #include <QEventLoop>
 +#include <QFileInfo>
 +#include <QFileSystemWatcher>
- #include <qdbusservicewatcher.h>
- #include <signal.h>
+ #include <QProcess>
+ #include <QStandardPaths>
  
-@@ -21,6 +24,16 @@ int main(int argc, char **argv)
+@@ -435,6 +437,16 @@ int main(int argc, char **argv)
  {
      QCoreApplication app(argc, argv);
  
@@ -286,9 +285,9 @@ index 5ddc6e98..a98233ce 100644
 +    }
 +#endif
      createConfigDirectory();
-     setupCursor(true);
      signal(SIGTERM, sigtermHandler);
-@@ -69,6 +82,10 @@ int main(int argc, char **argv)
+ 
+@@ -482,6 +494,10 @@ int main(int argc, char **argv)
          return 1;
      };
  
@@ -299,7 +298,7 @@ index 5ddc6e98..a98233ce 100644
      {
          auto msg = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.systemd1"),
                                                    QStringLiteral("/org/freedesktop/systemd1"),
-@@ -80,12 +97,16 @@ int main(int argc, char **argv)
+@@ -493,12 +509,16 @@ int main(int argc, char **argv)
              qWarning() << "Could not start systemd managed Plasma session:" << reply.error().name() << reply.error().message();
          }
      }
@@ -316,7 +315,7 @@ index 5ddc6e98..a98233ce 100644
      {
          auto msg = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.systemd1"),
                                                    QStringLiteral("/org/freedesktop/systemd1"),
-@@ -97,11 +118,15 @@ int main(int argc, char **argv)
+@@ -510,11 +530,15 @@ int main(int argc, char **argv)
              qWarning() << "Could not stop systemd managed Plasma session:" << reply.error().name() << reply.error().message();
          }
      }
@@ -332,7 +331,7 @@ index 5ddc6e98..a98233ce 100644
      {
          auto msg = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.systemd1"),
                                                    QStringLiteral("/org/freedesktop/systemd1"),
-@@ -113,6 +138,7 @@ int main(int argc, char **argv)
+@@ -526,6 +550,7 @@ int main(int argc, char **argv)
              qWarning() << "Could not close up systemd managed Plasma session:" << reply.error().name() << reply.error().message();
          }
      }
@@ -341,10 +340,10 @@ index 5ddc6e98..a98233ce 100644
      return 0;
  }
 diff --git a/src/frontend/wallpaper/CMakeLists.txt b/src/frontend/wallpaper/CMakeLists.txt
-index d122038a..67cbad0f 100644
+index 0c3a797d..ae6e91cf 100644
 --- a/src/frontend/wallpaper/CMakeLists.txt
 +++ b/src/frontend/wallpaper/CMakeLists.txt
-@@ -40,4 +40,8 @@ qt_add_shaders(plasma-login-wallpaper "wallpaper_shaders"
+@@ -41,4 +41,8 @@ qt_add_shaders(plasma-login-wallpaper "wallpaper_shaders"
  ecm_finalize_qml_module(plasma-login-wallpaper)
  
  install(TARGETS plasma-login-wallpaper DESTINATION ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})

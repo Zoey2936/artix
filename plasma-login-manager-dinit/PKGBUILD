@@ -1,6 +1,6 @@
 pkgname=plasma-login-manager-dinit
-pkgver=6.7.5
-pkgrel=3
+pkgver=6.8.0
+pkgrel=1
 arch=(x86_64)
 pkgdesc='Plasma Login Manager, built against dinit + userspawn + elogind + syslog'
 url='https://kde.org/plasma-desktop/'
@@ -21,7 +21,6 @@ depends=(dinit
          kirigami
          kpackage
          kservice
-         kwindowsystem
          layer-shell-qt
          libkscreen
          libplasma
@@ -52,7 +51,7 @@ prepare() {
 build() {
   cmake -B build -S ${pkgname%-dinit} -G Ninja \
     -DCMAKE_BUILD_TYPE=None \
-    -DCMAKE_INSTALL_LIBEXECDIR=lib \
+    -DKDE_INSTALL_LIBEXECDIR=lib \
     -DUSE_DINIT=ON \
     -DPAM_OS_CONFIGURATION=arch \
     -DPLASMALOGIN_INITIAL_VT=7 \
