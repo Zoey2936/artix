@@ -1,5 +1,5 @@
 pkgname=plasma-login-manager-dinit
-pkgver=6.8.1
+pkgver=6.8.2
 pkgrel=1
 arch=(x86_64)
 pkgdesc='Plasma Login Manager, built against dinit + userspawn + elogind + syslog'
