@@ -9,16 +9,26 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  packages:
+    runs-on: ubuntu-slim
+    permissions:
+      contents: read
+    outputs:
+      packages: ${{ steps.packages.outputs.packages }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: packages
+        run: echo "packages=$(jq -n -c '$ARGS.positional | map(rtrimstr("/"))' --args */)" >> $GITHUB_OUTPUT
+
   build:
     runs-on: ubuntu-latest
     container: artixlinux/artixlinux:base-devel@sha256:95dbaccdc03bb79bfbc80a05a905d252434cddaabb8289f0e0c1ad6cb174931b
     permissions:
       contents: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    needs: packages
+    strategy:
+      matrix:
+        package: ${{ fromJSON(needs.packages.outputs.packages) }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: package
@@ -29,7 +39,33 @@ jobs:
           pacman -Suy --noconfirm
           printenv GPG_PRIVKEY | gpg --batch --import
           sed -i 's/(( EUID == 0 ))/false/' /usr/bin/makepkg
-          for dir in */; do PKGDEST="$PWD/repo" makepkg -D "$dir" --syncdeps --noconfirm --sign; done
+          sed -i "s/^pkgrel=.*/pkgrel=${{ github.run_number }}/" ${{ matrix.package }}/PKGBUILD
+          PKGDEST="$PWD/repo" makepkg -D ${{ matrix.package }} --syncdeps --noconfirm --sign
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ matrix.package }}
+          path: repo
+
+  deploy:
+    runs-on: ubuntu-latest
+    container: artixlinux/artixlinux:base-devel@sha256:95dbaccdc03bb79bfbc80a05a905d252434cddaabb8289f0e0c1ad6cb174931b
+    permissions:
+      pages: write
+      id-token: write
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: repo
+          merge-multiple: true
+      - name: repo
+        env:
+          GPG_PRIVKEY: ${{ secrets.GPG_PRIVKEY }}
+        run: |
+          printenv GPG_PRIVKEY | gpg --batch --import
           repo-add --sign repo/custom.db.tar.gz repo/*.pkg.tar.zst
           gpg --armor --export | tee repo/zoey2936.asc
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
