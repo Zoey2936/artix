@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 98dcaabd..41ff6ed3 100644
+index 650b60e7..8e5dd32a 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -6,6 +6,7 @@ project(PLASMALOGIN VERSION ${PROJECT_VERSION})
@@ -258,19 +258,23 @@ index 00000000..f50ee3da
 +depends-on: plasma-login
 +waits-for: plasma-wallpaper
 diff --git a/src/frontend/startkde/startplasma.cpp b/src/frontend/startkde/startplasma.cpp
-index 9fe0a6a0..3a4dfaec 100644
+index 9fe0a6a0..610eee0f 100644
 --- a/src/frontend/startkde/startplasma.cpp
 +++ b/src/frontend/startkde/startplasma.cpp
-@@ -20,6 +20,8 @@
+@@ -20,8 +20,12 @@
  #include <QDebug>
  #include <QDir>
  #include <QEventLoop>
 +#include <QFileInfo>
 +#include <QFileSystemWatcher>
  #include <QProcess>
++#include <QRegularExpression>
  #include <QStandardPaths>
++#include <QTimer>
  
-@@ -435,6 +437,16 @@ int main(int argc, char **argv)
+ #include <QDBusConnectionInterface>
+ #include <QDBusMetaType>
+@@ -435,6 +439,21 @@ int main(int argc, char **argv)
  {
      QCoreApplication app(argc, argv);
  
@@ -281,24 +285,39 @@ index 9fe0a6a0..3a4dfaec 100644
 +        QFileSystemWatcher watcher({runtimeDir});
 +        QEventLoop loop;
 +        QObject::connect(&watcher, &QFileSystemWatcher::directoryChanged, &loop, [&] { if (QFileInfo::exists(bus)) loop.quit(); });
++        QTimer::singleShot(std::chrono::seconds(90), &loop, &QEventLoop::quit);
 +        if (!QFileInfo::exists(bus)) loop.exec();
++        if (!QFileInfo::exists(bus)) {
++            qWarning() << "D-Bus socket" << bus << "did not appear";
++            return 1;
++        }
 +    }
 +#endif
      createConfigDirectory();
      signal(SIGTERM, sigtermHandler);
  
-@@ -482,6 +494,10 @@ int main(int argc, char **argv)
+@@ -482,6 +501,20 @@ int main(int argc, char **argv)
          return 1;
      };
  
 +#ifdef USE_DINIT
-+    runSync(QStringLiteral("dinitctl"), QStringList{QStringLiteral("setenv")} + QProcess::systemEnvironment());
-+    runSync(QStringLiteral("dinitctl"), {QStringLiteral("start"), QStringLiteral("--no-wait"), QStringLiteral("plasma-login-wayland")});
++    QStringList setenvArguments{QStringLiteral("setenv")};
++    for (const QString &variable : QProcess::systemEnvironment()) {
++        const QString name = variable.section(u'=', 0, 0);
++        if (!QRegularExpression(QStringLiteral("^[A-Za-z_][A-Za-z0-9_]*$")).match(name).hasMatch() || isShellVariable(QStringView(name)) || isConfinementVariable(QStringView(name))) continue;
++        if (variable.toUtf8().size() > 1024 - 3) {
++            qWarning() << "Environment variable" << name << "is too long for dinitctl setenv";
++            continue;
++        }
++        setenvArguments << variable;
++    }
++    if (runSync(QStringLiteral("dinitctl"), setenvArguments)) return 1;
++    if (runSync(QStringLiteral("dinitctl"), {QStringLiteral("start"), QStringLiteral("--no-wait"), QStringLiteral("plasma-login-wayland")})) return 1;
 +#else
      {
          auto msg = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.systemd1"),
                                                    QStringLiteral("/org/freedesktop/systemd1"),
-@@ -493,12 +509,16 @@ int main(int argc, char **argv)
+@@ -493,12 +526,16 @@ int main(int argc, char **argv)
              qWarning() << "Could not start systemd managed Plasma session:" << reply.error().name() << reply.error().message();
          }
      }
@@ -315,7 +334,7 @@ index 9fe0a6a0..3a4dfaec 100644
      {
          auto msg = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.systemd1"),
                                                    QStringLiteral("/org/freedesktop/systemd1"),
-@@ -510,11 +530,15 @@ int main(int argc, char **argv)
+@@ -510,11 +547,15 @@ int main(int argc, char **argv)
              qWarning() << "Could not stop systemd managed Plasma session:" << reply.error().name() << reply.error().message();
          }
      }
@@ -331,7 +350,7 @@ index 9fe0a6a0..3a4dfaec 100644
      {
          auto msg = QDBusMessage::createMethodCall(QStringLiteral("org.freedesktop.systemd1"),
                                                    QStringLiteral("/org/freedesktop/systemd1"),
-@@ -526,6 +550,7 @@ int main(int argc, char **argv)
+@@ -526,6 +567,7 @@ int main(int argc, char **argv)
              qWarning() << "Could not close up systemd managed Plasma session:" << reply.error().name() << reply.error().message();
          }
      }
@@ -362,3 +381,17 @@ index 00000000..4ab7e678
 +type = process
 +command = @CMAKE_INSTALL_FULL_BINDIR@/plasma-login-wallpaper
 +depends-on: plasma-login-kwin_wayland
+diff --git a/src/helper/UserSession.cpp b/src/helper/UserSession.cpp
+index 9d9609b7..74a1c907 100644
+--- a/src/helper/UserSession.cpp
++++ b/src/helper/UserSession.cpp
+@@ -55,6 +55,9 @@ bool UserSession::start()
+         if (env.value(QStringLiteral("XDG_SESSION_CLASS")) == QLatin1String("greeter")) {
+             isWaylandGreeter = true;
+         }
++#ifdef USE_DINIT
++        if (isWaylandGreeter) connect(this, &QProcess::readyReadStandardError, this, [this] { qWarning().noquote() << readAllStandardError().trimmed(); });
++#endif
+         setProgram(WAYLAND_SESSION_COMMAND);
+         setArguments(QStringList{m_path});
+         qInfo() << "Starting Wayland user session:" << program() << m_path;
