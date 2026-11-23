@@ -1,0 +1,20 @@
+name: jsoncheck
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  jsoncheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: limitusus/json-syntax-check@v2.0.3
+        with:
+          pattern: "\\.json"
