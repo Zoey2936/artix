@@ -38,8 +38,8 @@ jobs:
           sed -i '1i Server = https://mirror1.artixlinux.org/repos/$repo/os/$arch' /etc/pacman.d/mirrorlist
           pacman -Suy --noconfirm
           printenv GPG_PRIVKEY | gpg --batch --import
-          sed -i 's/(( EUID == 0 ))/false/' /usr/bin/makepkg
-          sed -i "s/^pkgrel=.*/pkgrel=${{ github.run_number }}/" ${{ matrix.package }}/PKGBUILD
+          sed -i 's|(( EUID == 0 ))|false|' /usr/bin/makepkg
+          sed -i "s|^pkgrel=.*|pkgrel=${{ github.run_number }}|" ${{ matrix.package }}/PKGBUILD
           PKGDEST="$PWD/repo" makepkg -D ${{ matrix.package }} --syncdeps --noconfirm --sign
       - uses: actions/upload-artifact@v7.0.2
         with:

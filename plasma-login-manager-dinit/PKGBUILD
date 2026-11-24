@@ -41,8 +41,8 @@ provides=("${pkgname%-dinit}=$pkgver" init-displaymanager)
 conflicts=("${pkgname%-dinit}")
 source=("git+https://invent.kde.org/plasma/${pkgname%-dinit}.git#tag=v$pkgver"
         dinit.patch)
-sha256sums=('SKIP'
-            'SKIP')
+sha256sums=('a95293144f47e025804760c99e2a4ac8ccaaa13e737d83992252ee8911871eb7'
+            '3636558adc67a90744af803d67a3b3920b9aefdf4e58533a935633fb602a28c8')
 
 prepare() {
   git -C ${pkgname%-dinit} apply ../dinit.patch
