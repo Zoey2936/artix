@@ -22,7 +22,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    container: artixlinux/artixlinux:base-devel@sha256:bcf132f853cf3f9836e74f30e00bb8ab1882a1d61bd504dfe2dd8f2f8dfa1ee9
+    container: artixlinux/artixlinux:base-devel@sha256:59133eb445c0f6b4d06fbec53794cca06d1f6ea9d627fa7e051653cf829c0712
     permissions:
       contents: read
     needs: packages
@@ -48,7 +48,7 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    container: artixlinux/artixlinux:base-devel@sha256:bcf132f853cf3f9836e74f30e00bb8ab1882a1d61bd504dfe2dd8f2f8dfa1ee9
+    container: artixlinux/artixlinux:base-devel@sha256:59133eb445c0f6b4d06fbec53794cca06d1f6ea9d627fa7e051653cf829c0712
     permissions:
       pages: write
       id-token: write
